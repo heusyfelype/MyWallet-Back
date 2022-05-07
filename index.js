@@ -67,7 +67,7 @@ app.post('/sign-in', async (req, res) =>{
     const signIn = req.body;
 
     const signInSchema = joi.object({
-        email: joi.string().email(),
+        email: joi.string().email().required(),
         password: joi.string().pattern(new RegExp('^[a-zA-Z0-9]{4,15}$')).required(),
     });
 
@@ -86,7 +86,7 @@ app.post('/sign-in', async (req, res) =>{
         // const tokentest = uuid()
         const onlineUser = {
             name: user.name,
-            userId: user._id,
+            userId: new ObjectId(user._id),
             token: uuid()
         }
 
@@ -97,6 +97,60 @@ app.post('/sign-in', async (req, res) =>{
         return res.send(e)
     }
 })
+
+
+app.get("/sign-in", async (req, res) =>{
+    const userHeader = {
+        userId : req.headers.userid,
+        token : req.headers.token
+    }
+
+    const userHeaderSchema = joi.object({
+        userId: joi.required(),
+        token: joi.string().required(),
+    });
+
+    console.log(userHeader)
+
+    const validationUserHeader = userHeaderSchema.validate(userHeader, { abortEarly: false });
+
+    if (validationUserHeader.error) {
+        res.status(422).send(validationUserHeader.error.details.message)
+        return;
+    }
+
+    try{
+        const findSession = await dataBase.collection("sessions").findOne({...userHeader, userId: new ObjectId(userHeader.userId)});
+        const findAllSession = await dataBase.collection("sessions").find({}).toArray();
+        console.log("AllSessions: ", findAllSession)
+        console.log("UserHeader: ", userHeader)
+        if(!findSession){
+            return res.send("Usuário não está logado");
+        }
+
+        const findTransactions = await dataBase.collection("transactions").find({"userId": userHeader.userId}).toArray();
+        return
+    }catch{
+        return
+    }
+    return
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 app.listen(5000, () => {
