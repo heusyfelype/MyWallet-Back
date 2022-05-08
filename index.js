@@ -5,6 +5,7 @@ import dotenv from 'dotenv'
 import { MongoClient, ObjectId } from "mongodb";
 import { v4 as uuid } from 'uuid';
 import bcrypt from 'bcrypt';
+import dayjs from "dayjs";
 
 //import { signUp, signIn } from './controllers/authController.js';
 
@@ -127,20 +128,78 @@ app.get("/transactions", async (req, res) =>{
 
         const findTransactions = await dataBase.collection("transactions").find({userId: new ObjectId(userHeader.userId)}).toArray();
         return res.send(findTransactions)
-        return
+        
     }catch (e){
         return res.send("Alguma coisa deu errado", e)
     }
 })
 
 
-app.post("/cash-in", (req, res) => {
+app.post("/cash-in", async (req, res) => {
+    const cashIn = req.body;
+    console.log("deuBom", cashIn)
+    const cashInSchema = joi.object({
+        userId: joi.required(),
+        token: joi.string().required(),
+        transaction: joi.number().required()
+    });
+
+    const validationCashIn = cashInSchema.validate(cashIn, { abortEarly: false });
+    if (validationCashIn.error) {
+        res.status(422).send("Foi digitada alguma informação incorretamente", validationCashIn.error.details.message)
+        return;
+    }
 
 
+    try{
+        const findSession = await dataBase.collection("sessions").findOne({userId: new ObjectId(cashIn.userId), token: cashIn.token});
+            if(!findSession){
+                return res.send("Usuário não está logado");
+            }
+        
+        delete cashIn.token
+        cashIn.transaction = Math.abs(cashIn.transaction)
+        const postTransation = await dataBase.collection("transactions").insertOne({...cashIn, time: dayjs().format('YYYY-MM-DDTHH:mm:ssZ')})
+        res.send(cashIn);
+        return;
+    }catch(e){
+        res.send("Alguma coisa deu errado", e)
+        return;
+    }
+    
 })
 
-app.post("/cash-out", (req, res) => {
+app.post("/cash-out", async (req, res) => {
+    const cashIn = req.body;
+    console.log("deuBom", cashIn)
+    const cashInSchema = joi.object({
+        userId: joi.required(),
+        token: joi.string().required(),
+        transaction: joi.number().required()
+    });
 
+    const validationCashIn = cashInSchema.validate(cashIn, { abortEarly: false });
+    if (validationCashIn.error) {
+        res.status(422).send("Foi digitada alguma informação incorretamente", validationCashIn.error.details.message)
+        return;
+    }
+
+
+    try{
+        const findSession = await dataBase.collection("sessions").findOne({userId: new ObjectId(cashIn.userId), token: cashIn.token});
+            if(!findSession){
+                return res.send("Usuário não está logado");
+            }
+        
+        delete cashIn.token
+        cashIn.transaction = - Math.abs(cashIn.transaction)
+        const postTransation = await dataBase.collection("transactions").insertOne({...cashIn, time: dayjs().format('YYYY-MM-DDTHH:mm:ssZ')})
+        res.send(cashIn);
+        return;
+    }catch(e){
+        res.send("Alguma coisa deu errado", e)
+        return;
+    }
     
 })
 
