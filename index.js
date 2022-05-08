@@ -99,7 +99,7 @@ app.post('/sign-in', async (req, res) =>{
 })
 
 
-app.get("/sign-in", async (req, res) =>{
+app.get("/transactions", async (req, res) =>{
     const userHeader = {
         userId : req.headers.userid,
         token : req.headers.token
@@ -121,21 +121,28 @@ app.get("/sign-in", async (req, res) =>{
 
     try{
         const findSession = await dataBase.collection("sessions").findOne({...userHeader, userId: new ObjectId(userHeader.userId)});
-        const findAllSession = await dataBase.collection("sessions").find({}).toArray();
-        console.log("AllSessions: ", findAllSession)
-        console.log("UserHeader: ", userHeader)
         if(!findSession){
             return res.send("Usuário não está logado");
         }
 
-        const findTransactions = await dataBase.collection("transactions").find({"userId": userHeader.userId}).toArray();
+        const findTransactions = await dataBase.collection("transactions").find({userId: new ObjectId(userHeader.userId)}).toArray();
+        return res.send(findTransactions)
         return
-    }catch{
-        return
+    }catch (e){
+        return res.send("Alguma coisa deu errado", e)
     }
-    return
 })
 
+
+app.post("/cash-in", (req, res) => {
+
+
+})
+
+app.post("/cash-out", (req, res) => {
+
+    
+})
 
 
 
